@@ -12,8 +12,18 @@ typedef enum {
     CACHE_REPLACE_POLICY_LRU,
 } cache_replace_policy_e;
 
+typedef enum {
+    CACHE_LINE_FLAG_DIRTY = 1,
+    CACHE_LINE_FLAG_LRU = 2,
+} cache_line_flags_e;
+
 typedef struct {
-    unsigned int *cache;
+    unsigned int label;
+    unsigned char flags;
+} cache_line_t;
+
+typedef struct {
+    cache_line_t *cache;
 
     unsigned int cache_hit_count;
     unsigned int cache_miss_count;
