@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 bool read_inputs(const char* input_file_path, input_callback_t callback) {
     input_t input;

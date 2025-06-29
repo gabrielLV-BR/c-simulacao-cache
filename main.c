@@ -7,6 +7,7 @@
 #include "./memory.c"
 #include "./input.c"
 #include "./report.c"
+#include "./helper.c"
 
 #define ERROR 1
 #define SUCCESS 0
@@ -30,17 +31,11 @@ unsigned char get_next_lru(size_t set_index) {
     return biggest + 1;
 }
 
-unsigned char log2(address_t input) {
-    unsigned char count;
 
-    while (input >>= 1) count++;
-
-    return count;
-}
 
 unsigned int get_set(address_t input) {
     input >>= memory_parameters.word_bits;
-    input &= (~0) << memory_parameters.set_bits;
+    input &= ~((~0) << memory_parameters.set_bits);
     return input;
 }
 
@@ -70,7 +65,11 @@ size_t get_next_cache_line_to_set(size_t set_index) {
     return lowest_lru_index;
 }
 
-void handle_found(input_t input, size_t cache_line_index) {
+void handle_found(input_t input, size_t set_index, size_t cache_line_index) {
+    if (memory_parameters.cache_replace_policy == CACHE_REPLACE_POLICY_LRU) {
+        memory.cache[cache_line_index].order = get_next_lru(set_index);
+    }
+
     if (input.addressing_mode == ADDRESSING_MODE_READ) {
         memory.cache_read_count ++;
         return;
@@ -84,14 +83,14 @@ void handle_found(input_t input, size_t cache_line_index) {
         break;
     
     case CACHE_WRITE_POLICY_WRITE_THROUGH:
-        memory.main_memory_write_count ++;
+        memory.memory_write_count ++;
         break;
     }
 }
 
 void evict_cache_line(size_t cache_line_index) {
     if (memory.cache[cache_line_index].dirty && memory_parameters.cache_write_policy == CACHE_WRITE_POLICY_WRITE_BACK) {
-        memory.main_memory_write_count ++;
+        memory.memory_write_count ++;
     }
 
     memory.cache[cache_line_index].dirty = false;
@@ -104,7 +103,7 @@ void handle_not_found(input_t input, size_t set_index, unsigned int label) {
     if (input.addressing_mode == ADDRESSING_MODE_WRITE &&
         memory_parameters.cache_write_policy == CACHE_WRITE_POLICY_WRITE_THROUGH)
     {
-        memory.main_memory_write_count++;
+        memory.memory_write_count++;
         return;
     }
 
@@ -122,37 +121,32 @@ void handle_not_found(input_t input, size_t set_index, unsigned int label) {
         cache_line.order = 1;
     }
 
-    memory.main_memory_read_count ++;
+    memory.memory_read_count ++;
     memory.cache_write_count ++;
 
     memory.cache[cache_line_index] = cache_line;
 }
 
 void handle_input(input_t input) {
-    int i;
-    cache_line_t cache_line;
-    size_t cache_line_index = SIZE_MAX;
+    bool found = 0;
+    size_t cache_line_index, top;
 
-    unsigned int word = get_word(input.address);
     unsigned int set = get_set(input.address) * memory_parameters.cache_associativity;
     unsigned int label = get_label(input.address);
 
-    for (i = 0; i < memory_parameters.cache_associativity; i++) {
-        cache_line_index = set + i;
-        cache_line = memory.cache[cache_line_index];
-
-        if (cache_line.label == label) {
+    top = set + memory_parameters.cache_associativity;
+    for (cache_line_index = set; cache_line_index < top; cache_line_index++) {
+        if (memory.cache[cache_line_index].label == label) {
+            found = true;
             break;
         }
     }
 
-    if (cache_line_index != SIZE_MAX) {
-        handle_found(input, cache_line_index);
+    if (found) {
+        handle_found(input, set, cache_line_index);
     } else {
         handle_not_found(input, set, label);
     }
-
-    printf("Testando acesso à memória no endereço %x (%c)\n", input.address, input.addressing_mode);
 }
 
 int main() {
@@ -160,12 +154,11 @@ int main() {
 
     setlocale(LC_ALL, "ptbr");
 
+    printf("Digite o nome do arquivo de entrada.\n: ");
     if (!scanf("%64s", input_file)) {
         fprintf(stderr, "Ocorreu um erro ao ler o nome do arquivo de entrada.\n");
         return ERROR;
     }
-
-    printf("Bagulho ficou <%s>\n", input_file);
 
     if (!read_parameters(&memory_parameters)) {
         fprintf(stderr, "Ocorreu um erro na leitura dos parâmetros.\n");

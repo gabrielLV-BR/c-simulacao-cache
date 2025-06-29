@@ -34,8 +34,8 @@ typedef struct {
     unsigned int cache_read_count;
     unsigned int cache_write_count;
 
-    unsigned int main_memory_read_count;
-    unsigned int main_memory_write_count;
+    unsigned int memory_read_count;
+    unsigned int memory_write_count;
 } memory_t;
 
 typedef struct {
@@ -51,9 +51,8 @@ typedef struct {
     unsigned char set_bits;
     unsigned char label_bits;
     
-    unsigned int cache_hit_time;
-    unsigned int main_memory_read_time;
-    unsigned int main_memory_write_time;
+    unsigned int cache_access_time_ns;
+    unsigned int memory_access_time_ns;
 } memory_parameters_t;
 
 bool read_parameters(memory_parameters_t*);
