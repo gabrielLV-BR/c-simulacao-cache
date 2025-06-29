@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
-int read_inputs(const char* input_file_path, input_callback_t callback) {
+bool read_inputs(const char* input_file_path, input_callback_t callback) {
     input_t input;
     int input_count = 0;
 
@@ -14,7 +15,7 @@ int read_inputs(const char* input_file_path, input_callback_t callback) {
         fprintf(stderr, "Ocorreu um erro ao abrir o arquivo de entradas.\n");
         fclose(file);
 
-        return 0;
+        return false;
     }
 
     while (fscanf(file, "%x %c", &input.address, &input.addressing_mode) == 2) {
@@ -22,5 +23,13 @@ int read_inputs(const char* input_file_path, input_callback_t callback) {
     }
 
     fclose(file);
-    return 1;
+    return true;
+}
+
+unsigned int get_bits_for_block(unsigned int block_size) {
+
+}
+
+unsigned int get_bits_for_set(unsigned int associativity) {
+
 }

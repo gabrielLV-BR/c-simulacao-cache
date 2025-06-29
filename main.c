@@ -1,6 +1,8 @@
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "./memory.c"
 #include "./input.c"
@@ -10,11 +12,146 @@
 #define SUCCESS 0
 
 #define OUTPUT_FILE_PATH "resultado.txt"
+#define CACHE_LINE_NOT_FOUND SIZE_MAX
+
+#define MAX(a, b) ((a)>(b)?(a):(b))
 
 memory_t memory;
 memory_parameters_t memory_parameters;
 
+unsigned char get_next_lru(size_t set_index) {
+    int i;
+    unsigned char biggest = 0;
+
+    for (i = 0; i < memory_parameters.cache_associativity; i++) {
+        biggest = MAX(biggest, memory.cache[set_index + i].order);
+    }
+
+    return biggest + 1;
+}
+
+unsigned char log2(address_t input) {
+    unsigned char count;
+
+    while (input >>= 1) count++;
+
+    return count;
+}
+
+unsigned int get_set(address_t input) {
+    input >>= memory_parameters.word_bits;
+    input &= (~0) << memory_parameters.set_bits;
+    return input;
+}
+
+unsigned int get_label(address_t input) {
+    input >>= memory_parameters.word_bits;
+    input >>= memory_parameters.set_bits;
+    return input;
+}
+
+size_t get_next_cache_line_to_set(size_t set_index) {
+    size_t i, lowest_lru_index = set_index, top = set_index + memory_parameters.cache_associativity;
+
+    for (i = set_index; i < top; i++) {
+        if (!memory.cache[i].order) {
+            return i;
+        }
+
+        if (memory.cache[i].order < memory.cache[lowest_lru_index].order) {
+            lowest_lru_index = i;
+        }
+    }
+
+    if (memory_parameters.cache_replace_policy == CACHE_REPLACE_POLICY_RANDOM) {
+        return set_index + (rand() % memory_parameters.cache_associativity);
+    }
+
+    return lowest_lru_index;
+}
+
+void handle_found(input_t input, size_t cache_line_index) {
+    if (input.addressing_mode == ADDRESSING_MODE_READ) {
+        memory.cache_read_count ++;
+        return;
+    }
+
+    switch (memory_parameters.cache_write_policy)
+    {
+    case CACHE_WRITE_POLICY_WRITE_BACK:
+        memory.cache_write_count ++;
+        memory.cache[cache_line_index].dirty = true;
+        break;
+    
+    case CACHE_WRITE_POLICY_WRITE_THROUGH:
+        memory.main_memory_write_count ++;
+        break;
+    }
+}
+
+void evict_cache_line(size_t cache_line_index) {
+    if (memory.cache[cache_line_index].dirty && memory_parameters.cache_write_policy == CACHE_WRITE_POLICY_WRITE_BACK) {
+        memory.main_memory_write_count ++;
+    }
+
+    memory.cache[cache_line_index].dirty = false;
+}
+
+void handle_not_found(input_t input, size_t set_index, unsigned int label) {
+    size_t cache_line_index = get_next_cache_line_to_set(set_index);
+    cache_line_t cache_line = memory.cache[cache_line_index];
+
+    if (input.addressing_mode == ADDRESSING_MODE_WRITE &&
+        memory_parameters.cache_write_policy == CACHE_WRITE_POLICY_WRITE_THROUGH)
+    {
+        memory.main_memory_write_count++;
+        return;
+    }
+
+    evict_cache_line(cache_line_index);
+
+    if (input.addressing_mode == ADDRESSING_MODE_WRITE) {
+        cache_line.dirty = true;
+    }
+
+    cache_line.label = label;
+
+    if (memory_parameters.cache_replace_policy == CACHE_REPLACE_POLICY_LRU) {
+        cache_line.order = get_next_lru(set_index);
+    } else {
+        cache_line.order = 1;
+    }
+
+    memory.main_memory_read_count ++;
+    memory.cache_write_count ++;
+
+    memory.cache[cache_line_index] = cache_line;
+}
+
 void handle_input(input_t input) {
+    int i;
+    cache_line_t cache_line;
+    size_t cache_line_index = SIZE_MAX;
+
+    unsigned int word = get_word(input.address);
+    unsigned int set = get_set(input.address) * memory_parameters.cache_associativity;
+    unsigned int label = get_label(input.address);
+
+    for (i = 0; i < memory_parameters.cache_associativity; i++) {
+        cache_line_index = set + i;
+        cache_line = memory.cache[cache_line_index];
+
+        if (cache_line.label == label) {
+            break;
+        }
+    }
+
+    if (cache_line_index != SIZE_MAX) {
+        handle_found(input, cache_line_index);
+    } else {
+        handle_not_found(input, set, label);
+    }
+
     printf("Testando acesso à memória no endereço %x (%c)\n", input.address, input.addressing_mode);
 }
 
