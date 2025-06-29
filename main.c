@@ -31,8 +31,6 @@ unsigned char get_next_lru(size_t set_index) {
     return biggest + 1;
 }
 
-
-
 unsigned int get_set(address_t input) {
     input >>= memory_parameters.word_bits;
     input &= ~((~0) << memory_parameters.set_bits);
@@ -149,7 +147,7 @@ void handle_input(input_t input) {
     }
 }
 
-int main() {
+int main(int argc, char **argv) {
     char input_file[64];
 
     setlocale(LC_ALL, "ptbr");
@@ -160,7 +158,7 @@ int main() {
         return ERROR;
     }
 
-    if (!read_parameters(&memory_parameters)) {
+    if (!read_parameters(argc, argv, &memory_parameters)) {
         fprintf(stderr, "Ocorreu um erro na leitura dos parâmetros.\n");
         return ERROR;
     }

@@ -24,11 +24,3 @@ bool read_inputs(const char* input_file_path, input_callback_t callback) {
     fclose(file);
     return true;
 }
-
-unsigned int get_bits_for_block(unsigned int block_size) {
-
-}
-
-unsigned int get_bits_for_set(unsigned int associativity) {
-
-}

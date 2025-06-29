@@ -12,8 +12,8 @@ typedef enum {
 } cache_write_policy_e;
 
 typedef enum {
-    CACHE_REPLACE_POLICY_RANDOM,
     CACHE_REPLACE_POLICY_LRU,
+    CACHE_REPLACE_POLICY_RANDOM,
 } cache_replace_policy_e;
 
 typedef enum {
@@ -55,7 +55,7 @@ typedef struct {
     unsigned int memory_access_time_ns;
 } memory_parameters_t;
 
-bool read_parameters(memory_parameters_t*);
+bool read_parameters(int argc, char **argv, memory_parameters_t*);
 bool create_memory(memory_parameters_t, memory_t*);
 
 #endif
