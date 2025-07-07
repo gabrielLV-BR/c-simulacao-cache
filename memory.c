@@ -27,17 +27,11 @@ bool read_parameters(int argc, char **argv, memory_parameters_t* params) {
     params->memory_access_time_ns = atoi(argv[6]);
     params->cache_replace_policy = atoi(argv[7]);
 
-    // params->block_size = 16;
-    // params->cache_associativity = 16;
-    // params->cache_block_count = 256;
-    // params->cache_access_time_ns = 10;
-    // params->memory_access_time_ns = 100;
-    // params->cache_replace_policy = CACHE_REPLACE_POLICY_LRU;
-    // params->cache_write_policy = CACHE_WRITE_POLICY_WRITE_THROUGH;
+    unsigned int set_count = params->cache_block_count / params->cache_associativity;
 
     // pré-calcula número de bits para cada componente do endereço
     params->word_bits = count_bits(params->block_size);
-    params->set_bits = count_bits(params->cache_associativity);
+    params->set_bits = count_bits(set_count);
     params->label_bits = ADDRESS_LENGTH - params->word_bits - params->set_bits;
     
     // validações
@@ -53,7 +47,7 @@ bool read_parameters(int argc, char **argv, memory_parameters_t* params) {
         return false;
     }
 
-    if ((1 << params->set_bits) != params->cache_associativity) {
+    if ((1 << params->set_bits) != set_count) {
         fprintf(stderr, "O tamanho do conjunto deve ser uma potência de 2.\n");
         return false;
     }
@@ -63,6 +57,10 @@ bool read_parameters(int argc, char **argv, memory_parameters_t* params) {
 
 bool create_memory(memory_parameters_t params, memory_t* memory) {
     memory->cache = (cache_line_t*) calloc(params.cache_block_count, sizeof(cache_line_t));
+
+    memory->cache_miss_count = 0;
+    memory->cache_hit_count = 0;
+
     memory->cache_read_count = 0;
     memory->cache_write_count = 0;
 

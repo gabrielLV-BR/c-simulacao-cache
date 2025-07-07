@@ -31,6 +31,9 @@ typedef struct {
 typedef struct {
     cache_line_t *cache;
 
+    unsigned int cache_hit_count;
+    unsigned int cache_miss_count;
+
     unsigned int cache_read_count;
     unsigned int cache_write_count;
 

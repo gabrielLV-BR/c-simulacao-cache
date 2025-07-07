@@ -4,6 +4,6 @@
 
 #include "./memory.h"
 
-int generate_report(const char *, memory_parameters_t, memory_t);
+int generate_report(memory_parameters_t, memory_t);
 
 #endif

@@ -16,8 +16,8 @@ typedef struct {
     address_t address;
 } input_t;
 
-typedef void (*input_callback_t)(input_t);
+typedef void (*input_callback_t)(input_t, memory_t*, memory_parameters_t);
 
-bool read_inputs(const char*, input_callback_t);
+bool read_inputs(const char*, input_callback_t, memory_t*, memory_parameters_t);
 
 #endif

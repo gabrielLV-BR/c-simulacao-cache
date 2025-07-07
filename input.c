@@ -4,7 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool read_inputs(const char* input_file_path, input_callback_t callback) {
+bool read_inputs(
+    const char* input_file_path,
+    input_callback_t callback,
+    memory_t* memory,
+    memory_parameters_t parameters)
+{
     input_t input;
     int input_count = 0;
 
@@ -18,7 +23,7 @@ bool read_inputs(const char* input_file_path, input_callback_t callback) {
     }
 
     while (fscanf(file, "%x %c", &input.address, &input.addressing_mode) == 2) {
-        callback(input);
+        callback(input, memory, parameters);
     }
 
     fclose(file);
